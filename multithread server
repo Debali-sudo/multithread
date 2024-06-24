@@ -1,0 +1,59 @@
+Server
+import netpack as npk
+import time
+PORT=9999
+server_ip="127.0.0.1"
+ADDR=(server_ip, PORT)
+max_client_connection = 2
+# Step-1
+server_socket=npk.create_tcp_timeoutsocket()
+# Step-2
+npk.start_tcp_server(server_socket, ADDR)
+print("[WAIT] Multithreaded Server waits for maximum {} clients".format(max_client_connection))
+client_list = []
+while True:
+try:
+if len(client_list) < max_client_connection:
+(client_socket, addr)=npk.accept_tcp_client(server_socket)
+print('[CONNECTED] Client with IP : {} & PORT : {}'.format(addr[0], addr[1]))
+C=npk.ConnectClient_thread(client_socket, addr,20)
+C.start()
+client_list.append(C)
+if len(client_list)== max_client_connection:
+print('[=] Server has reached to maximum connections {}'.format(max_client_connection))
+except KeyboardInterrupt:
+break
+except:
+pass
+# for i in range(len(client_list)):
+# if not client_list[i].check_thread_status():
+# del client_list[i]
+for i in range(len(client_list)):
+if client_list[i].check_thread_status():
+client_list[i].close_connection()
+npk.close_socket_connection(server_socket)
+Client
+import netpack as npk
+import time
+PORT=9999
+client_ip="127.0.0.1"
+server_ip=client_ip
+ADDR=(server_ip, PORT)
+# Step-1
+client_socket=npk.create_tcp_timeoutsocket()
+# Step-2
+npk.connect_to_tcp_server(client_socket, ADDR)
+print('[CONNECTING] Server with IP : {} & PORT : {}'.format(ADDR[0], ADDR[1]))
+T1=time.time()
+data=None
+while True:
+try:
+data=npk.read_data_from_tcp_server(client_socket)
+if data=='close':
+break
+print('[=] Message from server : {}'.format(data))
+except:
+if (time.time()-T1 > 5) and (data==None): # wait 5 sec for server to connect & data is none
+print("[=] Server is not accepting connection")
+break
+npk.close_socket_connection(client_socket)
